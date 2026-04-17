@@ -111,9 +111,16 @@ function parseJobsFromHtml(html) {
 }
 
 async function scrapeJobs(testOnlyOnePage = false) {
-  console.log("Fetching careers page to verify structure...");
-  const html = await fetchCareersPage();
-  const htmlJobs = parseJobsFromHtml(html);
+  let htmlJobs = [];
+  
+  try {
+    console.log("Fetching careers page to verify structure...");
+    const html = await fetchCareersPage();
+    htmlJobs = parseJobsFromHtml(html);
+  } catch (err) {
+    console.log(`Warning: Could not fetch careers page: ${err.message}`);
+    console.log("Using fallback job list...");
+  }
   
   const jobsToProcess = htmlJobs.length > 0 ? htmlJobs : JOB_IMAGES;
   console.log(`Processing ${jobsToProcess.length} jobs...`);
