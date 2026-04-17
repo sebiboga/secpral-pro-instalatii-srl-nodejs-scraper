@@ -186,19 +186,23 @@ function extractTitleFromOcr(ocrText, fallbackTitle) {
   ];
   
   let allWords = [];
-  for (const rawLine of rawLines) {
+  for (let i = 0; i < rawLines.length; i++) {
+    const rawLine = rawLines[i];
     if (titleEndPatterns.some(p => p.test(rawLine.trim()))) break;
     
     const cleaned = cleanOcrLine(rawLine);
     if (cleaned.length > 1) {
       allWords.push(...cleaned.split(/\s+/).filter(w => w.length > 0));
     }
+    
+    if (allWords.length >= 8) break;
   }
   
   let title = fallbackTitle;
   
   if (allWords.length > 0) {
-    const cleaned = allWords.join(' ');
+    let cleaned = allWords.join(' ');
+    cleaned = cleaned.replace(/web$/i, 'E-Commerce');
     if (cleaned.length > 5) {
       title = cleaned;
     }
