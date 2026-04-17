@@ -13,7 +13,7 @@ async function preprocessImage(buffer) {
     .toBuffer();
 }
 
-export async function ocrImageFromUrl(imageUrl) {
+export async function ocrImageFromUrl(imageUrl, jobIndex = null) {
   console.log(`Running OCR on: ${imageUrl}`);
   
   try {
@@ -38,11 +38,14 @@ export async function ocrImageFromUrl(imageUrl) {
     
     const cleanedBuffer = await preprocessImage(imageBuffer);
     
+    const prefix = jobIndex !== null ? `[Job ${jobIndex}] ` : '';
+    
     const result = await Tesseract.recognize(cleanedBuffer, "ron+eng", {
       logger: m => {
         if (m.status === "recognizing text") {
           const progress = Math.round(m.progress * 100);
-          process.stdout.write(`\rOCR progress: ${progress}%`);
+          const padding = " ".repeat(Math.max(0, 15 - prefix.length - 10));
+          process.stdout.write(`\r${prefix}Progress: ${String(progress).padStart(3)}%${padding}`);
         }
       }
     });

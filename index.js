@@ -111,7 +111,7 @@ async function scrapeJobs(testOnlyOnePage = false) {
       if (!imageUrl.startsWith('http')) {
         imageUrl = new URL(imageUrl, BASE_URL).href;
       }
-      const ocrText = await ocrImageFromUrl(imageUrl);
+      const ocrText = await ocrImageFromUrl(imageUrl, i + 1);
       
       processedJobs.push({
         url: imageUrl,
