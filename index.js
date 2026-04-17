@@ -174,41 +174,7 @@ function cleanOcrLine(line) {
 }
 
 function extractTitleFromOcr(ocrText, fallbackTitle) {
-  const rawLines = ocrText.split('\n').slice(0, 20);
-  
-  const titleEndPatterns = [
-    /^in\s+(cluj|bucurești|chiajna|timișoara|iași|brașov)/i,
-    /^in\s+\w/i,
-    /^(de ce|despre|candidat|principalele|responsabilități|ce îți)/i,
-    /^(•|\*|©|\+)/,
-    /^[\[\(][^\]]{0,3}[\]\)]$/,
-    /^(nn?|ss?|ii?|aa?|mm?)$/i
-  ];
-  
-  let allWords = [];
-  for (let i = 0; i < rawLines.length; i++) {
-    const rawLine = rawLines[i];
-    if (titleEndPatterns.some(p => p.test(rawLine.trim()))) break;
-    
-    const cleaned = cleanOcrLine(rawLine);
-    if (cleaned.length > 1) {
-      allWords.push(...cleaned.split(/\s+/).filter(w => w.length > 0));
-    }
-    
-    if (allWords.length >= 8) break;
-  }
-  
-  let title = fallbackTitle;
-  
-  if (allWords.length > 0) {
-    let cleaned = allWords.join(' ');
-    cleaned = cleaned.replace(/web$/i, 'E-Commerce');
-    if (cleaned.length > 5) {
-      title = cleaned;
-    }
-  }
-  
-  return title;
+  return fallbackTitle;
 }
 
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
