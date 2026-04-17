@@ -5,6 +5,7 @@ import { load } from "cheerio";
 import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
+import puppeteer from "puppeteer";
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -17,6 +18,27 @@ const BASE_URL = "https://spishop.ro";
 let COMPANY_NAME = null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchWithPuppeteer(url) {
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+  });
+  
+  try {
+    const page = await browser.newPage();
+    await page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9,ro;q=0.8'
+    });
+    
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+    const html = await page.content();
+    
+    return html;
+  } finally {
+    await browser.close();
+  }
+}
 
 const JOB_IMAGES = [
   {
@@ -80,7 +102,13 @@ async function fetchCareersPage() {
     }
   }
   
-  throw lastError || new Error("Failed to fetch careers page after retries");
+  console.log("Regular fetch failed, trying Puppeteer...");
+  try {
+    return await fetchWithPuppeteer(CAREERS_PAGE);
+  } catch (puppeteerError) {
+    console.log(`Puppeteer also failed: ${puppeteerError.message}`);
+    throw lastError || puppeteerError;
+  }
 }
 
 function parseJobsFromHtml(html) {
