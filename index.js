@@ -31,7 +31,10 @@ async function fetchWithPuppeteer(url) {
       'Accept-Language': 'en-US,en;q=0.9,ro;q=0.8'
     });
     
-    await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForSelector('img[src*="cariere"]', { timeout: 10000 }).catch(() => {});
+    await sleep(2000);
+    
     const html = await page.content();
     
     return html;
