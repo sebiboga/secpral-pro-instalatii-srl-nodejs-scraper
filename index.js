@@ -5,11 +5,6 @@ import { load } from "cheerio";
 import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
-import puppeteer from "puppeteer";
-import puppeteerExtra from "puppeteer-extra";
-import stealthPlugin from "puppeteer-extra-plugin-stealth";
-
-puppeteerExtra.use(stealthPlugin());
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -22,38 +17,6 @@ const BASE_URL = "https://spishop.ro";
 let COMPANY_NAME = null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-async function fetchWithPuppeteer(url) {
-  const browser = await puppeteerExtra.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-  });
-  
-  try {
-    const page = await browser.newPage();
-    await page.setExtraHTTPHeaders({
-      'Accept-Language': 'en-US,en;q=0.9,ro;q=0.8'
-    });
-    
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForSelector('img[src*="cariere"]', { timeout: 15000 }).catch(() => {});
-    await sleep(3000);
-    
-    const html = await page.content();
-    
-    const imgCount = (html.match(/cariere/g) || []).length;
-    const title = await page.title();
-    console.log(`Puppeteer: title="${title}", HTML length=${html.length}, cariere refs=${imgCount}`);
-    
-    if (title.includes('403') || title.includes('Forbidden') || html.includes('Cloudflare') || html.includes('Access denied') || title.includes('Just a moment')) {
-      console.log('Warning: Puppeteer may be blocked');
-    }
-    
-    return html;
-  } finally {
-    await browser.close();
-  }
-}
 
 const JOB_IMAGES = [
   {
@@ -117,13 +80,7 @@ async function fetchCareersPage() {
     }
   }
   
-  console.log("Regular fetch failed, trying Puppeteer...");
-  try {
-    return await fetchWithPuppeteer(CAREERS_PAGE);
-  } catch (puppeteerError) {
-    console.log(`Puppeteer also failed: ${puppeteerError.message}`);
-    throw lastError || puppeteerError;
-  }
+  throw lastError || new Error("Failed to fetch careers page after retries");
 }
 
 function parseJobsFromHtml(html) {
