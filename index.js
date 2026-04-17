@@ -6,6 +6,10 @@ import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
 import puppeteer from "puppeteer";
+import puppeteerExtra from "puppeteer-extra";
+import stealthPlugin from "puppeteer-extra-plugin-stealth";
+
+puppeteerExtra.use(stealthPlugin());
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -20,7 +24,7 @@ let COMPANY_NAME = null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function fetchWithPuppeteer(url) {
-  const browser = await puppeteer.launch({
+  const browser = await puppeteerExtra.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
@@ -32,7 +36,7 @@ async function fetchWithPuppeteer(url) {
     });
     
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForSelector('img[src*="cariere"]', { timeout: 10000 }).catch(() => {});
+    await page.waitForSelector('img[src*="cariere"]', { timeout: 15000 }).catch(() => {});
     await sleep(3000);
     
     const html = await page.content();
@@ -41,7 +45,7 @@ async function fetchWithPuppeteer(url) {
     const title = await page.title();
     console.log(`Puppeteer: title="${title}", HTML length=${html.length}, cariere refs=${imgCount}`);
     
-    if (title.includes('403') || title.includes('Forbidden') || html.includes('Cloudflare') || html.includes('Access denied')) {
+    if (title.includes('403') || title.includes('Forbidden') || html.includes('Cloudflare') || html.includes('Access denied') || title.includes('Just a moment')) {
       console.log('Warning: Puppeteer may be blocked');
     }
     
