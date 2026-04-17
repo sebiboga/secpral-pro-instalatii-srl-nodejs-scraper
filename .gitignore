@@ -4,3 +4,4 @@ env.local
 !package.json
 *.log
 .DS_Store
+test-report.html
