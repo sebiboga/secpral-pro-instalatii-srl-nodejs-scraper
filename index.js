@@ -143,6 +143,10 @@ function extractJobInfoFromOcr(ocrText, fallbackTitle) {
   let location = "Cluj-Napoca";
   let remote = false;
   
+  if (ocrText.match(/E[- ]?Commerce/i) && fallbackTitle.toLowerCase().match(/platforma|web/)) {
+    title = 'Administrator Platforma E-Commerce';
+  }
+  
   const locationPatterns = [
     { pattern: /Chiajna/i, loc: "Chiajna" },
     { pattern: /București/i, loc: "București" },
