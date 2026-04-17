@@ -6,9 +6,11 @@ const TIMEOUT = 60000;
 
 async function preprocessImage(buffer) {
   return await sharp(Buffer.from(buffer))
+    .resize(2000, null, { fit: 'inside', withoutEnlargement: true })
     .grayscale()
-    .normalize()
-    .sharpen({ sigma: 1.5 })
+    .contrast(2.5)
+    .sharpen({ sigma: 2.0 })
+    .threshold(180)
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
@@ -52,7 +54,14 @@ export async function ocrImageFromUrl(imageUrl, jobIndex = null) {
     
     console.log("\nOCR completed.");
     
-    const text = result.data.text.trim();
+    let text = result.data.text.trim();
+    
+    text = text.replace(/[|]/g, 'I')
+               .replace(/o_o/g, 'a')
+               .replace(/_+/g, ' ')
+               .replace(/\n{3,}/g, '\n')
+               .replace(/\s+/g, ' ')
+               .trim();
     
     if (!text || text.length < 10) {
       console.log("Warning: OCR returned very little text. Image might not contain readable text.");

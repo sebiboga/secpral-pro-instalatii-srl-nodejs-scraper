@@ -5,7 +5,6 @@ import { load } from "cheerio";
 import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
-import { fixJobTitlesWithOpenCode } from "./title-fixer.js";
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -291,8 +290,6 @@ async function main() {
     }
     
     const jobs = rawJobs.map(job => mapToJobModel(job, cif));
-    
-    await fixJobTitlesWithOpenCode(jobs);
     
     const payload = {
       source: "spishop.ro",
