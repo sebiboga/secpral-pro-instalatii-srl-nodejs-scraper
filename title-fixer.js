@@ -24,8 +24,10 @@ ${j.description || "No description"}
 
   const prompt = `You are a Romanian job posting parser. Parse each job posting and return a JSON array.
 
-For EACH job, extract from the OCR text (NOT from filename/URL):
-1. title: The EXACT Romanian job title with proper diacritics (ă, â, î, ș, ț). Look near "RECRUTEAZĂ", "CAUTĂ", "ANGAJEAZĂ"
+IMPORTANT: Extract the job title from the OCR text ONLY. Look for the text right after "RECRUTEAZĂ" or "ANGAJEAZĂ" or "CAUTĂ". 
+
+For EACH job:
+1. title: The EXACT Romanian job title - MUST include ALL words like E-Commerce, Platformă, etc. If OCR says Administrator platformă E-Commerce then title MUST be Administrator Platformă E-Commerce (not just Administrator or Administrator Platformă)
 2. location: Romanian city with diacritics (e.g. "București", "Cluj-Napoca", "Chiajna")
 3. tags: Array of skills/education/experience keywords - lowercase, NO diacritics, max 20 items
 4. workmode: "remote", "on-site", or "hybrid" (default to "on-site")
@@ -48,6 +50,10 @@ Return ONLY valid JSON array, no explanations:`;
   try {
     console.log("Calling OpenCode AI...");
     const promptContent = readFileSync(tempFile, 'utf-8');
+    console.log("=== OPENCODE PROMPT START ===");
+    console.log(promptContent);
+    console.log("=== OPENCODE PROMPT END ===");
+    
     const result = execSync(`echo '${promptContent.replace(/'/g, "'\\''")}' | opencode run --format json`, {
       encoding: "utf-8",
       timeout: 120000,
@@ -55,6 +61,10 @@ Return ONLY valid JSON array, no explanations:`;
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
+    console.log("=== OPENCODE RESPONSE START ===");
+    console.log(result);
+    console.log("=== OPENCODE RESPONSE END ===");
+    
     const content = result.trim();
     
     const lines = content.split('\n').filter(l => l.trim());
