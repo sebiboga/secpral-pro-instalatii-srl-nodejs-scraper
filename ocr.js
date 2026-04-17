@@ -6,6 +6,9 @@ const TIMEOUT = 60000;
 
 async function preprocessImage(buffer) {
   return await sharp(Buffer.from(buffer))
+    .grayscale()
+    .normalize()
+    .sharpen({ sigma: 1.5 })
     .png({ compressionLevel: 9 })
     .toBuffer();
 }

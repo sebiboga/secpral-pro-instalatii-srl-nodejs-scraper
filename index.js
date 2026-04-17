@@ -136,16 +136,66 @@ async function scrapeJobs(testOnlyOnePage = false) {
   return processedJobs;
 }
 
-function extractJobInfoFromOcr(ocrText, fallbackTitle) {
-  const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
+function cleanOcrLine(line) {
+  return line
+    .replace(/[|]/g, 'I')
+    .replace(/o_o/g, 'a')
+    .replace(/0(?=[a-zA-Z])/g, 'O')
+    .replace(/_+/g, ' ')
+    .replace(/[^\w\săâîșțĂÂÎȘȚ-]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractTitleFromOcr(ocrText) {
+  const rawLines = ocrText.split('\n').slice(0, 10);
   
-  let title = fallbackTitle;
+  const jobKeywords = [
+    'administrator', 'asistent', 'economist', 'sofer', 'gestionar',
+    'director', 'manager', 'inginer', 'tehnician', 'consultant',
+    'specialist', 'operator', 'contabil', 'juridic', 'stivuitorist',
+    'electrician', 'mecanic', 'montator', 'vanzari', 'marketing'
+  ];
+  
+  let titleWords = [];
+  
+  for (const rawLine of rawLines) {
+    const cleanedLine = cleanOcrLine(rawLine);
+    const lowerLine = cleanedLine.toLowerCase();
+    
+    for (const keyword of jobKeywords) {
+      if (lowerLine.includes(keyword)) {
+        const words = cleanedLine.split(' ').filter(w => w.length > 1);
+        for (let i = 0; i < words.length; i++) {
+          if (words[i].toLowerCase().includes(keyword)) {
+            const titleCandidate = words.slice(i, i + 4).join(' ');
+            if (titleCandidate.length >= 5 && titleCandidate.length <= 50) {
+              titleWords.push(titleCandidate);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  let title = titleWords.length > 0 
+    ? titleWords[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    : null;
+  
+  if (ocrText.match(/E[- ]?Commerce/i)) {
+    if (title && title.toLowerCase().includes('platforma')) {
+      title = title.replace(/platforma/i, 'Platforma E-Commerce');
+    }
+  }
+  
+  return title;
+}
+
+function extractJobInfoFromOcr(ocrText, fallbackTitle) {
+  let title = extractTitleFromOcr(ocrText) || fallbackTitle;
+  
   let location = "Cluj-Napoca";
   let remote = false;
-  
-  if (ocrText.match(/E[- ]?Commerce/i) && fallbackTitle.toLowerCase().match(/platforma|web/)) {
-    title = 'Administrator Platforma E-Commerce';
-  }
   
   const locationPatterns = [
     { pattern: /Chiajna/i, loc: "Chiajna" },
@@ -157,6 +207,8 @@ function extractJobInfoFromOcr(ocrText, fallbackTitle) {
     { pattern: /Iași/i, loc: "Iași" },
     { pattern: /Brașov/i, loc: "Brașov" }
   ];
+  
+  const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
   
   for (const line of lines) {
     for (const { pattern, loc } of locationPatterns) {
