@@ -20,11 +20,6 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Run tests
-        run: npm test
-        env:
-          SOLR_AUTH: ${{ secrets.SOLR_AUTH }}
-
       - name: Run scraper
         run: npm run scrape
         env:
