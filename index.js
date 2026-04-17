@@ -5,6 +5,7 @@ import { load } from "cheerio";
 import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
+import { fixJobTitlesWithOpenCode } from "./title-fixer.js";
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -162,54 +163,11 @@ async function scrapeJobs(testOnlyOnePage = false) {
   return processedJobs;
 }
 
-function cleanOcrLine(line) {
-  return line
-    .replace(/[|]/g, 'I')
-    .replace(/o_o/g, 'a')
-    .replace(/0(?=[a-zA-Z])/g, 'O')
-    .replace(/_+/g, ' ')
-    .replace(/[^\w\săâîșțĂÂÎȘȚ-]/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function extractTitleFromOcr(ocrText, fallbackTitle) {
-  return fallbackTitle;
-}
-
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
-  let title = extractTitleFromOcr(ocrText, fallbackTitle);
-  
-  let location = "Cluj-Napoca";
-  let remote = false;
-  
-  const locationPatterns = [
-    { pattern: /Chiajna/i, loc: "Chiajna" },
-    { pattern: /București/i, loc: "București" },
-    { pattern: /Bucuresti/i, loc: "București" },
-    { pattern: /Cluj[- ]Napoca/i, loc: "Cluj-Napoca" },
-    { pattern: /^Cluj$/i, loc: "Cluj-Napoca" },
-    { pattern: /Timișoara/i, loc: "Timișoara" },
-    { pattern: /Iași/i, loc: "Iași" },
-    { pattern: /Brașov/i, loc: "Brașov" }
-  ];
-  
-  const lines = ocrText.split('\n').map(l => l.trim()).filter(l => l);
-  
-  for (const line of lines) {
-    for (const { pattern, loc } of locationPatterns) {
-      if (pattern.test(line)) {
-        location = loc;
-        break;
-      }
-    }
-  }
-  
-  if (/remote|la distanță|telefon|home office|hybid/i.test(ocrText)) {
-    remote = true;
-  }
-  
-  return { title, location, remote, description: ocrText };
+  return {
+    title: fallbackTitle,
+    description: ocrText
+  };
 }
 
 function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME) {
@@ -260,6 +218,8 @@ async function main() {
     }
     
     const jobs = rawJobs.map(job => mapToJobModel(job, cif));
+    
+    await fixJobTitlesWithOpenCode(jobs);
     
     const payload = {
       source: "spishop.ro",
