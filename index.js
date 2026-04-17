@@ -255,50 +255,6 @@ function extractTitleFromOcr(ocrText, fallbackTitle) {
   return title;
 }
 
-function extractTitleFromOcr(ocrText) {
-  const rawLines = ocrText.split('\n').slice(0, 10);
-  
-  const jobKeywords = [
-    'administrator', 'asistent', 'economist', 'sofer', 'gestionar',
-    'director', 'manager', 'inginer', 'tehnician', 'consultant',
-    'specialist', 'operator', 'contabil', 'juridic', 'stivuitorist',
-    'electrician', 'mecanic', 'montator', 'vanzari', 'marketing'
-  ];
-  
-  let titleWords = [];
-  
-  for (const rawLine of rawLines) {
-    const cleanedLine = cleanOcrLine(rawLine);
-    const lowerLine = cleanedLine.toLowerCase();
-    
-    for (const keyword of jobKeywords) {
-      if (lowerLine.includes(keyword)) {
-        const words = cleanedLine.split(' ').filter(w => w.length > 1);
-        for (let i = 0; i < words.length; i++) {
-          if (words[i].toLowerCase().includes(keyword)) {
-            const titleCandidate = words.slice(i, i + 4).join(' ');
-            if (titleCandidate.length >= 5 && titleCandidate.length <= 50) {
-              titleWords.push(titleCandidate);
-            }
-          }
-        }
-      }
-    }
-  }
-  
-  let title = titleWords.length > 0 
-    ? titleWords[0].split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-    : null;
-  
-  if (ocrText.match(/E[- ]?Commerce/i)) {
-    if (title && title.toLowerCase().includes('platforma')) {
-      title = title.replace(/platforma/i, 'Platforma E-Commerce');
-    }
-  }
-  
-  return title;
-}
-
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
   let title = extractTitleFromOcr(ocrText, fallbackTitle);
   
