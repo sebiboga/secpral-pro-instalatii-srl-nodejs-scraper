@@ -33,9 +33,17 @@ async function fetchWithPuppeteer(url) {
     
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForSelector('img[src*="cariere"]', { timeout: 10000 }).catch(() => {});
-    await sleep(2000);
+    await sleep(3000);
     
     const html = await page.content();
+    
+    const imgCount = (html.match(/cariere/g) || []).length;
+    const title = await page.title();
+    console.log(`Puppeteer: title="${title}", HTML length=${html.length}, cariere refs=${imgCount}`);
+    
+    if (title.includes('403') || title.includes('Forbidden') || html.includes('Cloudflare') || html.includes('Access denied')) {
+      console.log('Warning: Puppeteer may be blocked');
+    }
     
     return html;
   } finally {
