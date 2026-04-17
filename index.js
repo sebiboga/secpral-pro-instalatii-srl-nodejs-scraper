@@ -7,8 +7,6 @@ import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
 import { fixJobTitlesWithOpenCode } from "./title-fixer.js";
 
-const COMPANY_CIF = "10166281";
-const TIMEOUT = 10000;
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000;
 
@@ -111,7 +109,7 @@ function parseJobsFromHtml(html) {
   return jobs;
 }
 
-async function scrapeJobs(testOnlyOnePage = false) {
+async function scrapeJobs() {
   let htmlJobs = [];
   
   try {
@@ -193,8 +191,6 @@ function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME) {
 }
 
 async function main() {
-  const testOnlyOnePage = process.argv.includes("--test");
-  
   try {
     console.log("=== Step 1: Validate company via ANAF ===");
     const { company, cif, status, existingJobsCount } = await validateAndGetCompany();
@@ -209,7 +205,7 @@ async function main() {
     await addCompanyToCompanyCore(company, cif, null, CAREERS_PAGE);
     
     console.log("\n=== Step 3: Scrape jobs from Spishop ===");
-    const rawJobs = await scrapeJobs(testOnlyOnePage);
+    const rawJobs = await scrapeJobs();
     const scrapedCount = rawJobs.length;
     console.log(`📊 Jobs scraped: ${scrapedCount}`);
     

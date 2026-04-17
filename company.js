@@ -227,7 +227,7 @@ export async function addCompanyToCompanyCore(company, cif, anafData, careersPag
       website: ["https://spishop.ro", "https://secpral.ro"],
       career: [careersPage || "https://spishop.ro/ro/content/12-cariere"],
       lastScraped: now,
-      scraperFile: "index.js"
+      scraperFile: "https://github.com/sebiboga/secpral-pro-instalatii-srl-nodejs-scraper/blob/main/.github/workflows/run-spishop.yml"
     }
   ];
   

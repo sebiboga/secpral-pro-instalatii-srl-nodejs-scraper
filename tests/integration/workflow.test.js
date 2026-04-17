@@ -55,7 +55,7 @@ describe('Integration: API Workflow', () => {
       
       expect(secpral.id).toBe('10166281');
       expect(secpral.company).toBeDefined();
-      expect(secpral.brand).toBe('SECPRAL');
+      expect(secpral.brand).toBe('spishop');
       expect(secpral.status).toBeDefined();
       expect(['activ','suspendat','inactiv','radiat']).toContain(secpral.status);
     });

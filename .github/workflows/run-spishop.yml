@@ -21,6 +21,7 @@ jobs:
         run: npm run scrape
 
       - name: Upload jobs output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: spishop-jobs-output-${{ github.run_id }}
@@ -28,6 +29,7 @@ jobs:
           retention-days: 7
 
       - name: Upload company output
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: spishop-company-output-${{ github.run_id }}

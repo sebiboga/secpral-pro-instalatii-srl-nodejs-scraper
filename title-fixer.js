@@ -1,19 +1,7 @@
 import { execSync } from "child_process";
-import { writeFileSync, readFileSync } from "fs";
+import { writeFileSync, readFileSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-
-const JOB_MODEL_SCHEMA = `{
-  "title": "string - exact Romanian job title with diacritics",
-  "company": "SECPRAL PRO INSTALATII SRL",
-  "cif": "10166281", 
-  "location": "string - Romanian city with diacritics (e.g. București, Cluj-Napoca, Chiajna)",
-  "tags": "array of strings - skills/education/experience, lowercase, NO diacritics, max 20",
-  "workmode": "remote | on-site | hybrid",
-  "date": "UTC ISO8601 format",
-  "status": "scraped",
-  "url": "provided URL"
-}`;
 
 export async function fixJobTitlesWithOpenCode(jobs) {
   console.log("\n=== Fixing job data with OpenCode AI ===\n");
@@ -113,7 +101,7 @@ Return ONLY valid JSON array, no explanations:`;
     console.log("OpenCode error:", error.message);
     console.log("Keeping original job data");
   } finally {
-    try { require("fs").unlinkSync(tempFile); } catch (e) {}
+    try { unlinkSync(tempFile); } catch (e) {}
   }
 
   return jobs;
