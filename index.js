@@ -173,6 +173,88 @@ function cleanOcrLine(line) {
     .trim();
 }
 
+function extractTitleFromOcr(ocrText, fallbackTitle) {
+  const rawLines = ocrText.split('\n').slice(0, 15);
+  
+  const jobKeywords = [
+    'administrator', 'asistent', 'economist', 'sofer', 'gestionar',
+    'director', 'manager', 'inginer', 'tehnician', 'consultant',
+    'specialist', 'operator', 'contabil', 'juridic', 'stivuitorist',
+    'electrician', 'mecanic', 'montator', 'vanzari', 'marketing'
+  ];
+  
+  const titleEndMarkers = [
+    /^[Ii]n\s+(Cluj|București|Chiajna|Timișoara|Iași|Brașov)/i,
+    /^[(\[].*[NS]$/,
+    /^[NS]$/,
+    /^\[.*\]$/,
+    /^[A-Z]{2,}$/
+  ];
+  
+  let bestTitle = null;
+  let bestScore = 0;
+  
+  for (let lineIdx = 0; lineIdx < rawLines.length; lineIdx++) {
+    const rawLine = rawLines[lineIdx];
+    const cleanedLine = cleanOcrLine(rawLine);
+    const lowerLine = cleanedLine.toLowerCase();
+    
+    if (cleanedLine.length < 3) continue;
+    
+    if (titleEndMarkers.some(m => m.test(cleanedLine))) break;
+    
+    for (const keyword of jobKeywords) {
+      if (lowerLine.includes(keyword)) {
+        const words = cleanedLine.split(' ').filter(w => w.length > 1);
+        
+        for (let i = 0; i < words.length; i++) {
+          if (words[i].toLowerCase().includes(keyword)) {
+            let titleCandidate = words.slice(i, i + 5).join(' ');
+            
+            titleCandidate = titleCandidate
+              .replace(/\s*[NS]\s*$/g, '')
+              .replace(/\s*\[.*?\]\s*$/g, '')
+              .replace(/\s*[|;]\s*$/g, '')
+              .replace(/\s+[a-z]\s*$/gi, '')
+              .trim();
+            
+            if (titleCandidate.length >= 5 && titleCandidate.length <= 60) {
+              let score = 1;
+              
+              if (titleCandidate.toLowerCase().includes('director tehnic')) score += 3;
+              if (titleCandidate.toLowerCase().includes('platforma')) score += 2;
+              if (titleCandidate.toLowerCase().includes('autoutilitara')) score += 2;
+              if (titleCandidate.toLowerCase().includes('stivuitorist')) score += 2;
+              
+              if (score > bestScore) {
+                bestScore = score;
+                bestTitle = titleCandidate;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  let title = bestTitle 
+    ? bestTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    : fallbackTitle;
+  
+  if (ocrText.match(/E[- ]?Commerce/i)) {
+    if (title && title.toLowerCase().includes('platforma')) {
+      title = title.replace(/platforma/i, 'Platforma E-Commerce');
+    }
+  }
+  
+  const cleanedTitle = title.replace(/[NS]\s*$/g, '').replace(/\s*[|;]\s*$/g, '').trim();
+  if (cleanedTitle.length > 5) {
+    title = cleanedTitle;
+  }
+  
+  return title;
+}
+
 function extractTitleFromOcr(ocrText) {
   const rawLines = ocrText.split('\n').slice(0, 10);
   
@@ -218,7 +300,7 @@ function extractTitleFromOcr(ocrText) {
 }
 
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
-  let title = extractTitleFromOcr(ocrText) || fallbackTitle;
+  let title = extractTitleFromOcr(ocrText, fallbackTitle);
   
   let location = "Cluj-Napoca";
   let remote = false;
