@@ -1,7 +1,14 @@
 import fetch from "node-fetch";
 import Tesseract from "tesseract.js";
+import sharp from "sharp";
 
 const TIMEOUT = 60000;
+
+async function preprocessImage(buffer) {
+  return await sharp(Buffer.from(buffer))
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
 
 export async function ocrImageFromUrl(imageUrl) {
   console.log(`Running OCR on: ${imageUrl}`);
@@ -26,7 +33,9 @@ export async function ocrImageFromUrl(imageUrl) {
       throw new Error("Unsupported URL format");
     }
     
-    const result = await Tesseract.recognize(Buffer.from(imageBuffer), "ron+eng", {
+    const cleanedBuffer = await preprocessImage(imageBuffer);
+    
+    const result = await Tesseract.recognize(cleanedBuffer, "ron+eng", {
       logger: m => {
         if (m.status === "recognizing text") {
           const progress = Math.round(m.progress * 100);

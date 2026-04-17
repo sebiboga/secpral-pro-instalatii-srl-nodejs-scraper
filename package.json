@@ -11,9 +11,10 @@
     "test:e2e": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=e2e"
   },
   "dependencies": {
-    "node-fetch": "^3.3.2",
     "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.4.0",
+    "node-fetch": "^3.3.2",
+    "sharp": "^0.34.5",
     "tesseract.js": "^5.1.0"
   },
   "devDependencies": {
@@ -22,9 +23,14 @@
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.js"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "verbose": true,
-    "reporters": ["default", "jest-html-reporter"],
+    "reporters": [
+      "default",
+      "jest-html-reporter"
+    ],
     "defaultTimeout": 30000
   }
 }

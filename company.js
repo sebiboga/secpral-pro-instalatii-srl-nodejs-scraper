@@ -25,7 +25,8 @@ const COMPANY_MODEL_FIELDS = [
 ];
 
 async function getCompanyFromPeviitor(companyName) {
-  const url = `${Peviitor_API_URL}?name=${encodeURIComponent(companyName)}`;
+  const searchName = companyName.split(' ')[0];
+  const url = `${Peviitor_API_URL}?name=${encodeURIComponent(searchName)}`;
   const res = await fetch(url, {
     headers: { "User-Agent": "Mozilla/5.0" }
   });
@@ -186,7 +187,7 @@ export async function validateAndGetCompany() {
   console.log("\n=== Step 3: Validate via Peviitor ===\n");
   let peviitorData = null;
   try {
-    peviitorData = await getCompanyFromPeviitor(COMPANY_BRAND);
+    peviitorData = await getCompanyFromPeviitor(company);
     console.log("Peviitor data fetched successfully");
   } catch (e) {
     console.log("Peviitor API error:", e.message);
