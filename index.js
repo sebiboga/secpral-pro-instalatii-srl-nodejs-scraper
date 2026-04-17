@@ -5,6 +5,7 @@ import { load } from "cheerio";
 import { validateAndGetCompany, addCompanyToCompanyCore } from "./company.js";
 import { querySOLR, upsertJobs } from "./solr.js";
 import { ocrImageFromUrl } from "./ocr.js";
+import { fixJobTitlesWithOpenCode } from "./title-fixer.js";
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
@@ -176,13 +177,6 @@ function cleanOcrLine(line) {
 function extractTitleFromOcr(ocrText, fallbackTitle) {
   const rawLines = ocrText.split('\n').slice(0, 20);
   
-  const jobKeywords = [
-    'administrator', 'asistent', 'economist', 'sofer', 'gestionar',
-    'director', 'manager', 'inginer', 'tehnician', 'consultant',
-    'specialist', 'operator', 'contabil', 'juridic', 'stivuitorist',
-    'electrician', 'mecanic', 'montator', 'vanzari', 'marketing'
-  ];
-  
   const titleEndPatterns = [
     /^in\s+(cluj|bucurești|chiajna|timișoara|iași|brașov)/i,
     /^in\s+\w/i,
@@ -202,62 +196,16 @@ function extractTitleFromOcr(ocrText, fallbackTitle) {
     }
   }
   
-  const combinedText = allWords.join(' ');
-  const lowerCombined = combinedText.toLowerCase();
+  let title = fallbackTitle;
   
-  const knownTitles = [
-    { pattern: /asistent\s+(director\s+)?tehnic/i, title: 'Asistent Director Tehnic', score: 10 },
-    { pattern: /administrator\s+(platforma\s+)?[e-]?commerce/i, title: 'Administrator Platforma E-Commerce', score: 10 },
-    { pattern: /economist/i, title: 'Economist', score: 8 },
-    { pattern: /sofer\s+autoutilitara/i, title: 'Sofer Autoutilitara', score: 9 },
-    { pattern: /gestionar\s+stivuitorist/i, title: 'Gestionar Stivuitorist', score: 9 },
-    { pattern: /asistent\s+(director|tehnic|r[iiln])/i, title: 'Asistent Director Tehnic', score: 7 },
-    { pattern: /director\s+tehnic/i, title: 'Director Tehnic', score: 6 },
-    { pattern: /administrator\s+platforma/i, title: 'Administrator Platforma E-Commerce', score: 6 },
-    { pattern: /sofer\s+(autoutilitara|autoutilitara\s+nn?)/i, title: 'Sofer Autoutilitara', score: 6 },
-    { pattern: /gestionar\s+stivuitorist/i, title: 'Gestionar Stivuitorist', score: 6 },
-    { pattern: /administrator/i, title: 'Administrator Platforma E-Commerce', score: 5 },
-    { pattern: /asistent/i, title: 'Asistent', score: 4 },
-    { pattern: /economist/i, title: 'Economist', score: 4 },
-    { pattern: /sofer/i, title: 'Sofer', score: 4 },
-    { pattern: /gestionar/i, title: 'Gestionar', score: 4 },
-    { pattern: /stivuitorist/i, title: 'Stivuitorist', score: 4 },
-  ];
-  
-  let bestTitle = fallbackTitle;
-  let bestScore = 0;
-  
-  for (const known of knownTitles) {
-    if (known.pattern.test(lowerCombined)) {
-      if (known.score > bestScore) {
-        bestScore = known.score;
-        bestTitle = known.title;
-      }
+  if (allWords.length > 0) {
+    const cleaned = allWords.join(' ');
+    if (cleaned.length > 5) {
+      title = cleaned;
     }
   }
   
-  if (bestScore < 5) {
-    for (let i = 0; i < allWords.length; i++) {
-      const word = allWords[i].toLowerCase();
-      if (jobKeywords.includes(word)) {
-        let candidate = allWords.slice(i, i + 4).join(' ');
-        candidate = candidate.replace(/\s*(nn?|ss?|ii?|aa?|mm?)\s*$/gi, '').trim();
-        if (candidate.length > 5 && candidate.length < 50) {
-          if (candidate.toLowerCase().includes('director') && candidate.toLowerCase().includes('tehnic')) {
-            bestTitle = 'Asistent Director Tehnic';
-            bestScore = 7;
-            break;
-          }
-          if (candidate.toLowerCase().includes('platforma')) {
-            bestTitle = 'Administrator Platforma E-Commerce';
-            bestScore = 6;
-          }
-        }
-      }
-    }
-  }
-  
-  return bestTitle;
+  return title;
 }
 
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
@@ -343,6 +291,8 @@ async function main() {
     }
     
     const jobs = rawJobs.map(job => mapToJobModel(job, cif));
+    
+    await fixJobTitlesWithOpenCode(jobs);
     
     const payload = {
       source: "spishop.ro",
