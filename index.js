@@ -8,6 +8,8 @@ import { ocrImageFromUrl } from "./ocr.js";
 
 const COMPANY_CIF = "10166281";
 const TIMEOUT = 10000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 3000;
 
 const CAREERS_PAGE = "https://spishop.ro/ro/content/12-cariere";
 const BASE_URL = "https://spishop.ro";
@@ -40,28 +42,45 @@ const JOB_IMAGES = [
 ];
 
 async function fetchCareersPage() {
-  const res = await fetch(CAREERS_PAGE, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9,ro;q=0.8",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Connection": "keep-alive",
-      "Upgrade-Insecure-Requests": "1",
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-      "Sec-Fetch-User": "?1",
-      "Cache-Control": "max-age=0"
-    }
-  });
+  let lastError = null;
   
-  if (!res.ok) {
-    throw new Error(`Fetch error: ${res.status}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`Retry ${attempt}/${MAX_RETRIES} for careers page...`);
+        await sleep(RETRY_DELAY * attempt);
+      }
+      
+      const res = await fetch(CAREERS_PAGE, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9,ro;q=0.8",
+          "Accept-Encoding": "gzip, deflate, br",
+          "Connection": "keep-alive",
+          "Upgrade-Insecure-Requests": "1",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Sec-Fetch-User": "?1",
+          "Cache-Control": "max-age=0"
+        }
+      });
+      
+      if (!res.ok) {
+        lastError = new Error(`Fetch error: ${res.status}`);
+        console.log(`Attempt ${attempt} failed: ${res.status}`);
+        continue;
+      }
+      
+      return await res.text();
+    } catch (err) {
+      lastError = err;
+      console.log(`Attempt ${attempt} error: ${err.message}`);
+    }
   }
   
-  const html = await res.text();
-  return html;
+  throw lastError || new Error("Failed to fetch careers page after retries");
 }
 
 function parseJobsFromHtml(html) {
