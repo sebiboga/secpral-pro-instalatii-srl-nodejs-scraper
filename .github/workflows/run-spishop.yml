@@ -7,18 +7,12 @@ on:
 
 jobs:
   scrape:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, pi400]
     env:
       SOLR_AUTH: ${{ secrets.SOLR_AUTH }}
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
 
       - name: Install dependencies
         run: npm install
@@ -29,13 +23,13 @@ jobs:
       - name: Upload jobs output
         uses: actions/upload-artifact@v4
         with:
-          name: spishop-jobs-output
+          name: spishop-jobs-output-${{ github.run_id }}
           path: jobs.json
           retention-days: 7
 
       - name: Upload company output
         uses: actions/upload-artifact@v4
         with:
-          name: spishop-company-output
+          name: spishop-company-output-${{ github.run_id }}
           path: company.json
           retention-days: 7
