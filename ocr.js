@@ -8,9 +8,8 @@ async function preprocessImage(buffer) {
   return await sharp(Buffer.from(buffer))
     .resize(2000, null, { fit: 'inside', withoutEnlargement: true })
     .grayscale()
-    .contrast(2.5)
+    .modulate({ brightness: 1.3, contrast: 1.8 })
     .sharpen({ sigma: 2.0 })
-    .threshold(180)
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
