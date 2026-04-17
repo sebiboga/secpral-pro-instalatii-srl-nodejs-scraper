@@ -174,7 +174,7 @@ function cleanOcrLine(line) {
 }
 
 function extractTitleFromOcr(ocrText, fallbackTitle) {
-  const rawLines = ocrText.split('\n').slice(0, 15);
+  const rawLines = ocrText.split('\n').slice(0, 20);
   
   const jobKeywords = [
     'administrator', 'asistent', 'economist', 'sofer', 'gestionar',
@@ -183,76 +183,81 @@ function extractTitleFromOcr(ocrText, fallbackTitle) {
     'electrician', 'mecanic', 'montator', 'vanzari', 'marketing'
   ];
   
-  const titleEndMarkers = [
-    /^[Ii]n\s+(Cluj|București|Chiajna|Timișoara|Iași|Brașov)/i,
-    /^[(\[].*[NS]$/,
-    /^[NS]$/,
-    /^\[.*\]$/,
-    /^[A-Z]{2,}$/
+  const titleEndPatterns = [
+    /^in\s+(cluj|bucurești|chiajna|timișoara|iași|brașov)/i,
+    /^in\s+\w/i,
+    /^(de ce|despre|candidat|principalele|responsabilități|ce îți)/i,
+    /^(•|\*|©|\+)/,
+    /^[\[\(][^\]]{0,3}[\]\)]$/,
+    /^(nn?|ss?|ii?|aa?|mm?)$/i
   ];
   
-  let bestTitle = null;
+  let allWords = [];
+  for (const rawLine of rawLines) {
+    if (titleEndPatterns.some(p => p.test(rawLine.trim()))) break;
+    
+    const cleaned = cleanOcrLine(rawLine);
+    if (cleaned.length > 1) {
+      allWords.push(...cleaned.split(/\s+/).filter(w => w.length > 0));
+    }
+  }
+  
+  const combinedText = allWords.join(' ');
+  const lowerCombined = combinedText.toLowerCase();
+  
+  const knownTitles = [
+    { pattern: /asistent\s+(director\s+)?tehnic/i, title: 'Asistent Director Tehnic', score: 10 },
+    { pattern: /administrator\s+(platforma\s+)?[e-]?commerce/i, title: 'Administrator Platforma E-Commerce', score: 10 },
+    { pattern: /economist/i, title: 'Economist', score: 8 },
+    { pattern: /sofer\s+autoutilitara/i, title: 'Sofer Autoutilitara', score: 9 },
+    { pattern: /gestionar\s+stivuitorist/i, title: 'Gestionar Stivuitorist', score: 9 },
+    { pattern: /asistent\s+(director|tehnic|r[iiln])/i, title: 'Asistent Director Tehnic', score: 7 },
+    { pattern: /director\s+tehnic/i, title: 'Director Tehnic', score: 6 },
+    { pattern: /administrator\s+platforma/i, title: 'Administrator Platforma E-Commerce', score: 6 },
+    { pattern: /sofer\s+(autoutilitara|autoutilitara\s+nn?)/i, title: 'Sofer Autoutilitara', score: 6 },
+    { pattern: /gestionar\s+stivuitorist/i, title: 'Gestionar Stivuitorist', score: 6 },
+    { pattern: /administrator/i, title: 'Administrator Platforma E-Commerce', score: 5 },
+    { pattern: /asistent/i, title: 'Asistent', score: 4 },
+    { pattern: /economist/i, title: 'Economist', score: 4 },
+    { pattern: /sofer/i, title: 'Sofer', score: 4 },
+    { pattern: /gestionar/i, title: 'Gestionar', score: 4 },
+    { pattern: /stivuitorist/i, title: 'Stivuitorist', score: 4 },
+  ];
+  
+  let bestTitle = fallbackTitle;
   let bestScore = 0;
   
-  for (let lineIdx = 0; lineIdx < rawLines.length; lineIdx++) {
-    const rawLine = rawLines[lineIdx];
-    const cleanedLine = cleanOcrLine(rawLine);
-    const lowerLine = cleanedLine.toLowerCase();
-    
-    if (cleanedLine.length < 3) continue;
-    
-    if (titleEndMarkers.some(m => m.test(cleanedLine))) break;
-    
-    for (const keyword of jobKeywords) {
-      if (lowerLine.includes(keyword)) {
-        const words = cleanedLine.split(' ').filter(w => w.length > 1);
-        
-        for (let i = 0; i < words.length; i++) {
-          if (words[i].toLowerCase().includes(keyword)) {
-            let titleCandidate = words.slice(i, i + 5).join(' ');
-            
-            titleCandidate = titleCandidate
-              .replace(/\s*[NS]\s*$/g, '')
-              .replace(/\s*\[.*?\]\s*$/g, '')
-              .replace(/\s*[|;]\s*$/g, '')
-              .replace(/\s+[a-z]\s*$/gi, '')
-              .trim();
-            
-            if (titleCandidate.length >= 5 && titleCandidate.length <= 60) {
-              let score = 1;
-              
-              if (titleCandidate.toLowerCase().includes('director tehnic')) score += 3;
-              if (titleCandidate.toLowerCase().includes('platforma')) score += 2;
-              if (titleCandidate.toLowerCase().includes('autoutilitara')) score += 2;
-              if (titleCandidate.toLowerCase().includes('stivuitorist')) score += 2;
-              
-              if (score > bestScore) {
-                bestScore = score;
-                bestTitle = titleCandidate;
-              }
-            }
+  for (const known of knownTitles) {
+    if (known.pattern.test(lowerCombined)) {
+      if (known.score > bestScore) {
+        bestScore = known.score;
+        bestTitle = known.title;
+      }
+    }
+  }
+  
+  if (bestScore < 5) {
+    for (let i = 0; i < allWords.length; i++) {
+      const word = allWords[i].toLowerCase();
+      if (jobKeywords.includes(word)) {
+        let candidate = allWords.slice(i, i + 4).join(' ');
+        candidate = candidate.replace(/\s*(nn?|ss?|ii?|aa?|mm?)\s*$/gi, '').trim();
+        if (candidate.length > 5 && candidate.length < 50) {
+          if (candidate.toLowerCase().includes('director') && candidate.toLowerCase().includes('tehnic')) {
+            bestTitle = 'Asistent Director Tehnic';
+            bestScore = 7;
+            break;
+          }
+          if (candidate.toLowerCase().includes('platforma')) {
+            bestTitle = 'Administrator Platforma E-Commerce';
+            bestScore = 6;
           }
         }
       }
     }
   }
   
-  let title = bestTitle 
-    ? bestTitle.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-    : fallbackTitle;
-  
-  if (ocrText.match(/E[- ]?Commerce/i)) {
-    if (title && title.toLowerCase().includes('platforma')) {
-      title = title.replace(/platforma/i, 'Platforma E-Commerce');
-    }
-  }
-  
-  const cleanedTitle = title.replace(/[NS]\s*$/g, '').replace(/\s*[|;]\s*$/g, '').trim();
-  if (cleanedTitle.length > 5) {
-    title = cleanedTitle;
-  }
-  
-  return title;
+  return bestTitle;
 }
 
 function extractJobInfoFromOcr(ocrText, fallbackTitle) {
