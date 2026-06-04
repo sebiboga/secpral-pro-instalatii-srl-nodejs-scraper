@@ -1,7 +1,51 @@
+# Dependencies
 node_modules/
-env.local
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+
+# Test outputs
+test-report.html
+test-results*.html
+coverage/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Job data files (should not be committed)
 *.json
 !package.json
-*.log
-.DS_Store
-test-report.html
+!package-lock.json
+!company.json
+jobs.json
+company_data.json
+delete.json
+
+# Credentials (NEVER commit these)
+*.pem
+*.key
+credentials.json
+env.local

@@ -1,39 +1,38 @@
-# SECPRAL PRO INSTALATII SRL - Job Scraper
+# SECPRAL PRO INSTALATII SRL — Job Scraper
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-24.x-green.svg)
 ![GitHub Actions](https://img.shields.io/badge/GitHub-Actions-orange.svg)
 
-Automated job scraper for spishop.ro that extracts job postings via OCR and pushes them to peviitor.ro SOLR index.
+**job_seeker_ro_spider** — web scraper pentru a aduce locurile de munca de la **SECPRAL PRO INSTALATII SRL (spishop.ro)** in platforma [peviitor.ro](https://peviitor.ro).
 
-## Features
+## Despre
 
-- 🚀 Automated daily scraping at 2 AM
-- 📸 OCR-based job extraction from images
-- 🤖 AI-powered title normalization using OpenCode
-- ✅ Company validation via ANAF API
-- 🏢 Automatic company core registration
-- 📊 Full test coverage (unit, integration, e2e)
-- 🔄 Self-hosted GitHub Actions runner on Raspberry Pi 400
+Acest scraper extrage zilnic anunturile de angajare de pe [spishop.ro](https://spishop.ro/ro/content/12-cariere) folosind OCR (Tesseract.js) pentru a citi textul din imaginile cu anunturi si le publica in platforma peviitor.ro prin API-ul SOLR.
+
+## Cum functioneaza
+
+| Pas | Actiune | API/Sursa |
+|-----|---------|-----------|
+| 1 | Valideaza compania in ANAF | [demoanaf.ro](https://demoanaf.ro) |
+| 2 | Cross-valideaza in Peviitor | [api.peviitor.ro](https://api.peviitor.ro) |
+| 3 | Extrage pagina de cariere | [spishop.ro](https://spishop.ro) |
+| 4 | Parseaza imaginile cu joburi | Cheerio (HTML) |
+| 5 | OCR pe fiecare imagine | Tesseract.js + Sharp |
+| 6 | Normalizeaza titlurile | OpenCode AI |
+| 7 | Trimite la SOLR | [solr.peviitor.ro](https://solr.peviitor.ro) |
 
 ## Tech Stack
 
-- **Node.js** 24.x
-- **Tesseract.js** - OCR
-- **Sharp** - Image preprocessing
-- **Cheerio** - HTML parsing
-- **OpenCode AI** - Job title extraction
-- **GitHub Actions** - CI/CD
-- **Raspberry Pi 400** - Self-hosted runner
+- **Node.js 24** — Runtime
+- **Tesseract.js** — OCR (Optical Character Recognition)
+- **Sharp** — Image preprocessing
+- **Cheerio** — HTML parsing
+- **OpenCode AI** — AI-powered title extraction
+- **GitHub Actions** — CI/CD + self-hosted runner
+- **Raspberry Pi 400** — Self-hosted runner hardware
 
-## Prerequisites
-
-- Node.js 24.x
-- npm
-- Raspberry Pi 400 (for self-hosted runner)
-- SOLR credentials (contact peviitor.ro)
-
-## Installation
+## Instalare
 
 ```bash
 git clone https://github.com/sebiboga/secpral-pro-instalatii-srl-nodejs-scraper.git
@@ -41,24 +40,21 @@ cd secpral-pro-instalatii-srl-nodejs-scraper
 npm install
 ```
 
-## Configuration
+## Configurare
 
-Create `env.local` file:
+Creeaza fisierul `.env.local`:
 
 ```
-SOLR_AUTH=solr:your_password_here
+SOLR_AUTH=solr:parola_ta
 ```
 
-## Usage
+## Utilizare
 
 ```bash
-# Run scraper locally
+# Ruleaza scraperul
 npm run scrape
 
-# Run with test mode
-npm run scrape -- --test
-
-# Run tests
+# Ruleaza testele
 npm test
 npm run test:unit
 npm run test:integration
@@ -67,65 +63,50 @@ npm run test:e2e
 
 ## GitHub Actions
 
-The scraper runs automatically via GitHub Actions:
+| Workflow | Schedule | Runner |
+|----------|----------|--------|
+| **Scrape** | Zilnic la 2 AM | `[self-hosted, pi400]` |
+| **Tests** | La fiecare push/PR | `ubuntu-latest` |
+| **Pages** | La fiecare push pe main | `ubuntu-latest` |
 
-- **Scheduled**: Daily at 2 AM
-- **Manual**: Workflow dispatch
-
-### Self-Hosted Runner
-
-This project uses a self-hosted Raspberry Pi 400 runner to avoid IP blocking from spishop.ro.
-
-## Job Model Schema
-
-| Field | Type | Description |
-|-------|------|-------------|
-| url | string | Job posting URL |
-| title | string | Job title with Romanian diacritics |
-| company | string | Company name |
-| cif | string | Fiscal identification number |
-| location | array | City/cities |
-| description | string | Job description (OCR text) |
-| workmode | string | remote/on-site/hybrid |
-| date | date | UTC ISO8601 scrape date |
-| status | string | scraped/tested/verified/published |
-| tags | array | Skills/requirements |
-
-## Project Structure
+## Structura proiect
 
 ```
 .
-├── index.js          # Main scraper
-├── company.js        # Company validation & core registration
-├── solr.js           # SOLR operations
-├── ocr.js            # OCR processing
-├── title-fixer.js    # OpenCode AI title extraction
-├── demoanaf.js       # ANAF API client
+├── index.js              # Orchestrator principal
+├── company.js            # Validare companie (ANAF + Peviitor + SOLR)
+├── demoanaf.js           # CLI wrapper pentru src/anaf.js
+├── src/anaf.js           # Modul ANAF API (search + company)
+├── ocr.js                # Procesare OCR (Tesseract.js + Sharp)
+├── title-fixer.js        # Normalizare titluri cu OpenCode AI
+├── solr.js               # Operatii SOLR
 ├── package.json
-├── .github/
-│   └── workflows/
-│       ├── run-spishop.yml  # Main scraper workflow
-│       └── test.yml         # Test workflow
-└── tests/
-    ├── unit/
-    ├── integration/
-    └── e2e/
+├── .github/workflows/
+│   ├── run-spishop.yml   # Scraper principal (self-hosted)
+│   ├── test.yml          # Teste automate
+│   └── deploy.yml        # GitHub Pages deploy
+├── tests/
+│   ├── unit/             # Teste unitare
+│   ├── integration/      # Teste de integrare
+│   └── e2e/              # Teste end-to-end
+└── docs/
+    └── index.html        # GitHub Pages site
 ```
 
 ## License
 
-MIT License - Copyright (c) 2026 BOGA SEBASTIAN-NICOLAE
+MIT License — Copyright (c) 2026 BOGA SEBASTIAN-NICOLAE
 
-## Author
+## Autor
 
 **Boga Sebastian-Nicolae**
-
 - GitHub: [@sebiboga](https://github.com/sebiboga)
 - LinkedIn: [sebastianboga](https://linkedin.com/in/sebastianboga)
-- Website: https://peviitor.ro
+- Website: [peviitor.ro](https://peviitor.ro)
 
-## Credits
+## Credite
 
-- [peviitor.ro](https://peviitor.ro) - Job search platform
-- [Tesseract.js](https://tesseract.projectnaptha.com/) - OCR engine
-- [OpenCode AI](https://opencode.ai) - AI-powered text processing
+- [peviitor.ro](https://peviitor.ro) — Platforma de cautare locuri de munca
+- [Tesseract.js](https://github.com/naptha/tesseract.js) — Engine OCR
+- [OpenCode AI](https://opencode.ai) — Procesare text cu AI
+- [spishop.ro](https://spishop.ro) — Sursa datelor
