@@ -1,7 +1,10 @@
 import { execSync } from "child_process";
-import { writeFileSync, readFileSync, unlinkSync } from "fs";
-import { tmpdir } from "os";
+import { writeFileSync, readFileSync, unlinkSync, mkdirSync } from "fs";
 import { join } from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export async function fixJobTitlesWithOpenCode(jobs) {
   console.log("\n=== Fixing job data with OpenCode AI ===\n");
@@ -44,7 +47,8 @@ Jobs to parse:${jobsText}
 
 Return ONLY valid JSON array, no explanations:`;
 
-  const tempFile = join(tmpdir(), `opencode-prompt-${Date.now()}.txt`);
+  mkdirSync(join(__dirname, "tmp"), { recursive: true });
+  const tempFile = join(__dirname, "tmp", `opencode-prompt-${Date.now()}.txt`);
   writeFileSync(tempFile, prompt);
 
   try {

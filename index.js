@@ -225,8 +225,9 @@ async function main() {
       jobs
     };
     
-    fs.writeFileSync("jobs.json", JSON.stringify(payload, null, 2), "utf-8");
-    console.log("Saved jobs.json");
+    fs.mkdirSync("tmp", { recursive: true });
+    fs.writeFileSync("tmp/jobs.json", JSON.stringify(payload, null, 2), "utf-8");
+    console.log("Saved tmp/jobs.json");
     
     const validJobs = jobs.filter(j => j.description && j.description.length > 10);
     console.log(`📊 Jobs with valid description: ${validJobs.length}`);

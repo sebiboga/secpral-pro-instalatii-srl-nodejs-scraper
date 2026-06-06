@@ -49,8 +49,9 @@ async function main() {
   console.log(`Valid: ${results.valid}`);
   console.log(`Invalid: ${results.invalid}`);
   
-  fs.writeFileSync("validation-report.json", JSON.stringify(results, null, 2));
-  console.log("Report saved to validation-report.json");
+  fs.mkdirSync("tmp", { recursive: true });
+  fs.writeFileSync("tmp/validation-report.json", JSON.stringify(results, null, 2));
+  console.log("Report saved to tmp/validation-report.json");
 }
 
 main().catch(err => {

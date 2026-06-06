@@ -1,10 +1,11 @@
 import fetch from "node-fetch";
 import fs from "fs";
 import { querySOLR, queryCompanySOLR, deleteJobsByCIF, upsertJobs, upsertCompany } from "./solr.js";
-import { getCompanyFromANAF, searchCompany } from "./demoanaf.js";
+import { getCompanyFromANAF } from "./demoanaf.js";
 
 const Peviitor_API_URL = "https://api.peviitor.ro/v1/company/";
 
+const COMPANY_CIF = "10166281";
 const COMPANY_BRAND = "spishop";
 
 export function getCompanyBrand() {
@@ -82,6 +83,7 @@ function validateCompanyModel(data) {
 }
 
 function saveCompanyData(anafData, peviitorData) {
+  fs.mkdirSync("tmp", { recursive: true });
   const companyData = {
     validatedAt: new Date().toISOString(),
     source: "ANAF",
@@ -102,77 +104,54 @@ function saveCompanyData(anafData, peviitorData) {
     }
   };
   
-  fs.writeFileSync("company.json", JSON.stringify(companyData, null, 2), "utf-8");
-  console.log("\n✅ Saved company data to company.json");
+  fs.writeFileSync("tmp/company.json", JSON.stringify(companyData, null, 2), "utf-8");
+  console.log("\n✅ Saved company data to tmp/company.json");
   console.log("This file can be used to restore company details if SOLR data is lost.\n");
   
   return companyData;
 }
 
 export async function getCompanyData() {
-  console.log(`Searching for company: SECPRAL`);
-  const searchResults = await searchCompany("SECPRAL");
-  
-  if (!searchResults || searchResults.length === 0) {
-    throw new Error(`No companies found for brand: ${COMPANY_BRAND}`);
-  }
-  
-  const exactMatch = searchResults.find(c => 
-    (c.name.toUpperCase().startsWith("SECPRAL ") || 
-     c.name.toUpperCase().includes(" SECPRAL ")) &&
-    c.statusLabel === "Funcțiune"
-  );
-  
-  if (!exactMatch) {
-    console.log("No exact match with 'Funcțiune' status, trying first active company...");
-    const activeMatch = searchResults.find(c => c.statusLabel === "Funcțiune");
-    if (!activeMatch) {
-      throw new Error(`No active company found for brand: ${COMPANY_BRAND}`);
-    }
-    var selectedCIF = activeMatch.cui;
-    console.log(`Selected: ${activeMatch.name} (CIF: ${selectedCIF})`);
-  } else {
-    var selectedCIF = exactMatch.cui;
-    console.log(`Found exact match: ${exactMatch.name} (CIF: ${selectedCIF})`);
-  }
-  
+  const selectedCIF = COMPANY_CIF;
+  console.log(`Using known CIF: ${selectedCIF}`);
+
   console.log(`Fetching company details for CIF: ${selectedCIF}`);
-  
+
   let anafData = null;
   try {
-    anafData = await getCompanyFromANAF(selectedCIF.toString());
+    anafData = await getCompanyFromANAF(selectedCIF);
   } catch (err) {
     console.log(`ANAF API error, using fallback data: ${err.message}`);
   }
-  
+
   if (!anafData) {
-    console.log("Using fallback company data from search results");
+    console.log("Using fallback company data");
     anafData = {
-      name: exactMatch?.name || "SECPRAL PRO INSTALATII SRL",
+      name: "SECPRAL PRO INSTALATII SRL",
       cui: selectedCIF,
       inactive: false,
       county: "Cluj",
       locality: "Cluj-Napoca"
     };
   }
-  
+
   if (!anafData.name) {
-    anafData.name = exactMatch?.name || "SECPRAL PRO INSTALATII SRL";
+    anafData.name = "SECPRAL PRO INSTALATII SRL";
   }
-  
+
   if (!anafData.cui) {
     anafData.cui = selectedCIF;
   }
-  
+
   console.log(`Company name: ${anafData.name}`);
   console.log(`Company CIF: ${anafData.cui}`);
   console.log(`Company status: ${anafData.inactive ? "INACTIVE" : "ACTIVE"}`);
-  
+
   const company = anafData.name.toUpperCase();
   const cif = anafData.cui.toString();
   const active = !anafData.inactive;
-  
-return { company, cif, active, anafData };
+
+  return { company, cif, active, anafData };
 }
 
 export async function validateAndGetCompany() {
@@ -238,8 +217,9 @@ export async function addCompanyToCompanyCore(company, cif, anafData, careersPag
     console.error("Failed to add company to Company Core:", err.message);
   }
   
-  fs.writeFileSync("company_core.json", JSON.stringify(companyCoreData, null, 2), "utf-8");
-  console.log("Saved company_core.json");
+  fs.mkdirSync("tmp", { recursive: true });
+  fs.writeFileSync("tmp/company_core.json", JSON.stringify(companyCoreData, null, 2), "utf-8");
+  console.log("Saved tmp/company_core.json");
   
   return companyCoreData;
 }

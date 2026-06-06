@@ -3,10 +3,12 @@ import { jest } from '@jest/globals';
 describe('solr.js', () => {
   describe('getSolrAuth', () => {
     it('should return SOLR_AUTH from environment', async () => {
+      process.env.SOLR_AUTH = 'test:test';
       const solr = await import('../../solr.js');
       const auth = solr.getSolrAuth();
       expect(auth).toBeDefined();
       expect(typeof auth).toBe('string');
+      delete process.env.SOLR_AUTH;
     });
   });
 });
