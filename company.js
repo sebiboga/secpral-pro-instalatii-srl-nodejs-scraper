@@ -29,7 +29,11 @@ async function getCompanyFromPeviitor(companyName) {
   const searchName = companyName.split(' ')[0];
   const url = `${Peviitor_API_URL}?name=${encodeURIComponent(searchName)}`;
   const res = await fetch(url, {
-    headers: { "User-Agent": "Mozilla/5.0" }
+    headers: {
+      "User-Agent": "job_seeker_ro_spider",
+      "origin": "https://peviitor.ro",
+      "referer": "https://peviitor.ro/"
+    }
   });
   
   if (!res.ok) {
